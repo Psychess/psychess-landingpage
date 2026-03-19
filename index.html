@@ -123,7 +123,9 @@ section { padding: 6rem 5%; }
 .tab-btn { padding: .5rem 1.2rem; border-radius: 50px; border: 1px solid var(--border); background: var(--white); cursor: pointer; font-size: .85rem; font-weight: 500; color: var(--muted); transition: all .2s; font-family: 'DM Sans', sans-serif; }
 .tab-btn.active { background: var(--navy); color: var(--white); border-color: var(--navy); }
 .tab-btn:hover:not(.active) { border-color: var(--orange); color: var(--orange); }
-.services-grid { display: none; }
+.services-grid { display: none !important; }
+.services-grid.tab-active { display: grid !important; }
+.services-grid.tab-active-block { display: block !important; }
 .grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 1.5rem; }
 .service-card { background: var(--white); border-radius: 12px; padding: 2rem; border: 1px solid var(--border); transition: transform .2s, box-shadow .2s; position: relative; overflow: hidden; }
 .service-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--navy), var(--orange)); transform: scaleX(0); transform-origin: left; transition: transform .3s; }
@@ -394,7 +396,7 @@ footer p { font-size: .82rem; }
     <button class="tab-btn" data-tab="talleres" onclick="showTab('talleres')">🔥 Talleres</button>
   </div>
 
-  <div id="tab-psicoDeportiva" class="services-grid grid-2" style="display:grid;">
+  <div id="tab-psicoDeportiva" class="services-grid grid-2 tab-active">
     <div class="service-card">
       <div class="service-icon">🏆</div>
       <div class="service-name">Sesiones Psicodeportivas</div>
@@ -421,7 +423,7 @@ footer p { font-size: .82rem; }
     </div>
   </div>
 
-  <div id="tab-coaching" class="services-grid grid-2" style="display:none;">
+  <div id="tab-coaching" class="services-grid grid-2">
     <div class="service-card">
       <div class="service-icon">🎯</div>
       <div class="service-name">Coaching de Vida</div>
@@ -446,7 +448,7 @@ footer p { font-size: .82rem; }
     </div>
   </div>
 
-  <div id="tab-ajedrez" class="services-grid grid-2" style="display:none;">
+  <div id="tab-ajedrez" class="services-grid grid-2">
     <div class="service-card">
       <div class="service-icon">♟️</div>
       <div class="service-name">Clases Individuales</div>
@@ -472,7 +474,7 @@ footer p { font-size: .82rem; }
     </div>
   </div>
 
-  <div id="tab-talleres" class="services-grid" style="display:none;">
+  <div id="tab-talleres" class="services-grid">
     <p style="color:var(--muted);margin-bottom:1.5rem;">90 min · Grupos hasta 20 personas · Material digital incluido</p>
     <div class="wk-grid" style="margin-bottom:2.5rem;">
       <div class="wk-card"><div class="wk-card-num">01</div><div class="wk-card-name">Decide con Confianza</div><div class="wk-card-sub">Decisiones sin ansiedad</div><div class="wk-tags"><span class="wk-tag">Claridad</span></div></div>
@@ -636,76 +638,106 @@ document.querySelectorAll('.nav-links a').forEach(function(a) {
 
 // TABS
 function showTab(tabName) {
-  var grids = document.querySelectorAll('.services-grid');
-  grids.forEach(function(g) { g.style.display = 'none'; });
-  var btns = document.querySelectorAll('.tab-btn');
-  btns.forEach(function(b) { b.classList.remove('active'); });
+  // Remove active class from all grids
+  document.querySelectorAll('.services-grid').forEach(function(g) {
+    g.classList.remove('tab-active', 'tab-active-block');
+  });
+  // Remove active from all buttons
+  document.querySelectorAll('.tab-btn').forEach(function(b) {
+    b.classList.remove('active');
+  });
+  // Show target grid
   var target = document.getElementById('tab-' + tabName);
   if (target) {
-    target.style.display = (tabName === 'talleres') ? 'block' : 'grid';
+    if (tabName === 'talleres') {
+      target.classList.add('tab-active-block');
+    } else {
+      target.classList.add('tab-active');
+    }
   }
-  btns.forEach(function(b) {
-    if (b.getAttribute('data-tab') === tabName) { b.classList.add('active'); }
+  // Activate button
+  document.querySelectorAll('.tab-btn').forEach(function(b) {
+    if (b.getAttribute('data-tab') === tabName) {
+      b.classList.add('active');
+    }
   });
 }
 
-// CAROUSEL
+// CAROUSEL - robust version
 var carSlide = 0;
 var carTimer = null;
+var carReady = false;
 
 function carGetPerView() {
   return window.innerWidth < 600 ? 1 : window.innerWidth < 960 ? 2 : 3;
 }
 
-function carGetTotal() {
-  var cards = document.querySelectorAll('.testimonial-card');
-  return Math.ceil(cards.length / carGetPerView());
+function carInit() {
+  var track = document.getElementById('carouselTrack');
+  if (!track) return;
+  var cards = track.querySelectorAll('.testimonial-card');
+  if (!cards.length) return;
+  var wrap = track.parentElement;
+  if (!wrap || wrap.offsetWidth === 0) {
+    // Try again in 100ms if layout not ready
+    setTimeout(carInit, 100);
+    return;
+  }
+  carReady = true;
+  carRender();
+  carResetTimer();
 }
 
 function carRender() {
   var track = document.getElementById('carouselTrack');
+  if (!track) return;
   var cards = track.querySelectorAll('.testimonial-card');
   var perView = carGetPerView();
   var wrap = track.parentElement;
-  var gap = 24;
-  var totalW = wrap.offsetWidth;
-  var cardW = (totalW - gap * (perView - 1)) / perView;
+  var gap = 20;
+  var totalW = wrap.offsetWidth || 800;
+  var cardW = Math.floor((totalW - gap * (perView - 1)) / perView);
 
-  cards.forEach(function(c) {
-    c.style.width = cardW + 'px';
-    c.style.minWidth = cardW + 'px';
-  });
+  for (var i = 0; i < cards.length; i++) {
+    cards[i].style.width = cardW + 'px';
+    cards[i].style.minWidth = cardW + 'px';
+    cards[i].style.flexShrink = '0';
+  }
 
   var total = Math.ceil(cards.length / perView);
   if (carSlide >= total) carSlide = 0;
-
   var offset = carSlide * (cardW + gap) * perView;
   track.style.transform = 'translateX(-' + offset + 'px)';
 
-  // Dots
-  var dots = document.getElementById('carouselDots');
-  dots.innerHTML = '';
-  for (var i = 0; i < total; i++) {
-    var d = document.createElement('div');
-    d.className = 'dot' + (i === carSlide ? ' active' : '');
+  var dotsEl = document.getElementById('carouselDots');
+  if (!dotsEl) return;
+  dotsEl.innerHTML = '';
+  for (var j = 0; j < total; j++) {
+    var d = document.createElement('span');
+    d.className = 'dot' + (j === carSlide ? ' active' : '');
+    d.style.cursor = 'pointer';
     (function(idx) {
-      d.addEventListener('click', function() { carSlide = idx; carRender(); });
-    })(i);
-    dots.appendChild(d);
+      d.onclick = function() { carSlide = idx; carRender(); carResetTimer(); };
+    })(j);
+    dotsEl.appendChild(d);
   }
 }
 
 function carouselNext() {
-  var total = carGetTotal();
+  var track = document.getElementById('carouselTrack');
+  if (!track) return;
+  var cards = track.querySelectorAll('.testimonial-card');
+  var total = Math.ceil(cards.length / carGetPerView());
   carSlide = (carSlide + 1) % total;
   carRender();
-  carResetTimer();
 }
 function carouselPrev() {
-  var total = carGetTotal();
+  var track = document.getElementById('carouselTrack');
+  if (!track) return;
+  var cards = track.querySelectorAll('.testimonial-card');
+  var total = Math.ceil(cards.length / carGetPerView());
   carSlide = (carSlide - 1 + total) % total;
   carRender();
-  carResetTimer();
 }
 function carResetTimer() {
   clearInterval(carTimer);
@@ -713,7 +745,10 @@ function carResetTimer() {
 }
 
 window.addEventListener('resize', function() { carSlide = 0; carRender(); });
-window.addEventListener('load', function() { carRender(); carResetTimer(); });
+// Multiple init attempts to handle cached pages
+document.addEventListener('DOMContentLoaded', function() { setTimeout(carInit, 200); });
+window.addEventListener('load', function() { setTimeout(carInit, 100); });
+setTimeout(carInit, 500);
 
 // FREE CONSULT FORM -> WhatsApp
 function submitFreeConsult() {
@@ -746,7 +781,10 @@ function submitFreeConsult() {
 ' +
     'Enviado desde psychessacademy.github.io'
   );
-  window.open('https://wa.me/50371250807?text=' + text, '_blank');
+  var _waLink = document.createElement('a');
+  _waLink.href = 'https://wa.me/50371250807?text=' + text;
+  _waLink.target = '_blank'; _waLink.rel = 'noopener noreferrer';
+  document.body.appendChild(_waLink); _waLink.click(); document.body.removeChild(_waLink);
   document.getElementById('fc_success').style.display = 'block';
   document.getElementById('fc_success').scrollIntoView({ behavior: 'smooth' });
   // Hide form fields
@@ -759,6 +797,29 @@ function submitFreeConsult() {
 
 // CONTACT FORM -> WhatsApp
 function sendContactWA() {
+  var name = document.getElementById('ct_name').value.trim();
+  var email = document.getElementById('ct_email').value.trim();
+  var service = document.getElementById('ct_service').value;
+  var msg = document.getElementById('ct_msg').value.trim();
+  var privacy = document.getElementById('ct_privacy').checked;
+
+  if (!name) { alert('Por favor escribe tu nombre.'); return; }
+  if (!privacy) { alert('Debes aceptar la politica de privacidad.'); return; }
+
+  var msgText = 'Hola PsyChess Academy!' +
+    '%0A%0ANombre: ' + encodeURIComponent(name) +
+    '%0ACorreo: ' + encodeURIComponent(email || 'No indicado') +
+    '%0AServicio: ' + encodeURIComponent(service || 'No especificado') +
+    '%0AMensaje: ' + encodeURIComponent(msg || 'Sin mensaje');
+
+  var waLink = document.createElement('a');
+  waLink.href = 'https://wa.me/50371250807?text=' + msgText;
+  waLink.target = '_blank';
+  waLink.rel = 'noopener noreferrer';
+  document.body.appendChild(waLink);
+  waLink.click();
+  document.body.removeChild(waLink);
+}function sendContactWA() {
   var name = document.getElementById('ct_name').value.trim();
   var email = document.getElementById('ct_email').value.trim();
   var service = document.getElementById('ct_service').value;

@@ -141,7 +141,7 @@ function submitFreeConsult() {
     '%0AMensaje: ' + encodeURIComponent(msg || 'Sin mensaje');
 
   var waLink = document.createElement('a');
-  waLink.href = 'https://wa.me/50371250807?text=' + msgText;
+  waLink.href = 'https://wa.me/50377026649?text=' + msgText;
   waLink.target = '_blank';
   waLink.rel = 'noopener noreferrer';
   document.body.appendChild(waLink);
@@ -175,7 +175,7 @@ function sendContactWA() {
     '%0AMensaje: ' + encodeURIComponent(msg || 'Sin mensaje');
 
   var waLink = document.createElement('a');
-  waLink.href = 'https://wa.me/50371250807?text=' + msgText;
+  waLink.href = 'https://wa.me/50377026649?text=' + msgText;
   waLink.target = '_blank';
   waLink.rel = 'noopener noreferrer';
   document.body.appendChild(waLink);
